@@ -69,7 +69,9 @@ def main():
 
 
     #-----Download set of books-----
-    download_bunch_of_books(id_start=1, id_stop=10, storage_folder=storage_folder)
+    download_bunch_of_books(id_start=1, \
+                            id_stop=10, \
+                            storage_folder=storage_folder)
 
 
 if __name__=='__main__':
