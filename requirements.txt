@@ -7,3 +7,4 @@ idna==3.4
 requests==2.31.0
 soupsieve==2.4.1
 environs==9.5.0
+lxml==4.9.3
