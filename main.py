@@ -9,15 +9,15 @@ def check_for_redirect(response):
         raise requests.HTTPError
 
 
-def download_book_by_url(url, \
-                  book_filename, \
-                  storage_folder='books'):
+def download_book_by_url(url,
+                         book_filename,
+                         storage_folder='books'):
     '''Download file as a text'''
     if not os.path.exists(storage_folder):
         os.makedirs(storage_folder)
 
     response = requests.get(url)
-    response.raise_for_status() 
+    response.raise_for_status()
     check_for_redirect(response)
 
     book_fullpath = f'{storage_folder}/{book_filename}'
@@ -28,8 +28,8 @@ def download_book_by_url(url, \
     return response.status_code
 
 
-def download_bunch_of_books(id_start=1, \
-                            id_stop=100, \
+def download_bunch_of_books(id_start=1,
+                            id_stop=100,
                             storage_folder='books'):
     '''Download books with id in range [id_start, id_stop]'''
 
@@ -41,8 +41,8 @@ def download_bunch_of_books(id_start=1, \
         book_filename = f'id{id}.txt'
 
         try:
-            response = download_book_by_url(url=url, \
-                                            storage_folder=storage_folder, \
+            response = download_book_by_url(url=url,
+                                            storage_folder=storage_folder,
                                             book_filename=book_filename)
         except requests.exceptions.HTTPError as err:
             print(f'Main page redirect - {book_filename}')
@@ -54,25 +54,24 @@ def main():
     env.read_env()
     storage_folder = env('STORAGE_FOLDER')
 
-    #-----Download Arthur Clark book-----
+    # -----Download Arthur Clark book-----
     print('Download book - Arthur Clark The sands of Mars')
     book_id = 32168
     url = f'https://tululu.org/txt.php?id={book_id}'
     book_filename = f'id{book_id}.txt'
 
     try:
-        response = download_book_by_url(url=url, \
-                                        storage_folder=storage_folder, \
+        response = download_book_by_url(url=url,
+                                        storage_folder=storage_folder,
                                         book_filename=book_filename)
     except requests.exceptions.HTTPError as err:
         print(f'Main page redirect - {book_filename}')
 
-
-    #-----Download set of books-----
-    download_bunch_of_books(id_start=1, \
-                            id_stop=10, \
+    # ----Download set of books-----
+    download_bunch_of_books(id_start=1,
+                            id_stop=10,
                             storage_folder=storage_folder)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
