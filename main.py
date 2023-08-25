@@ -96,11 +96,11 @@ def main():
     env.read_env()
     storage_folder = env('STORAGE_FOLDER')
 
-    for book_id in range(100):
+    for book_id in range(10):
         try:
             book = extract_book_name_author(book_id)
             book_url = book['url']
-            book_name = book['name']
+            book_name = f"{book['id']}. {book['name']}"
             filepath = download_txt(book_url, book_name, folder=storage_folder)
             print(filepath)
         except requests.exceptions.HTTPError as err:
