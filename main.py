@@ -2,6 +2,7 @@ import os
 import requests
 from environs import Env
 from bs4 import BeautifulSoup
+from pathvalidate import sanitize_filename
 
 
 def check_for_redirect(response):
@@ -51,7 +52,6 @@ def download_bunch_of_books(id_start=1,
 def extract_book_name_author(id):
     '''Extract book name and author'''
     url = f'https://tululu.org/b{id}/'
-
     response = requests.get(url)
     response.raise_for_status()
     check_for_redirect(response)
@@ -60,11 +60,34 @@ def extract_book_name_author(id):
     book = soup.find('div', id='content').find('h1').text
     book_name, book_author = book.split('::')
 
+    book_name = book_name.lstrip().rstrip()
+    book_author = book_author.lstrip().rstrip()
+
     return {
         'id': id,
-        'name': book_name.lstrip().rstrip(),
-        'author': book_author.lstrip().rstrip()
+        'url': f'http://tululu.org/txt.php?id={id}',
+        'name': f'{book_name}.txt',
+        'author': book_author,
     }
+
+
+def download_txt(url, filename, folder='books/'):
+    '''Download file as a text'''
+    folder = sanitize_filename(folder)
+    filename = sanitize_filename(filename)
+    book_fullpath = os.path.join(folder, filename)
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    response = requests.get(url)
+    response.raise_for_status()
+    check_for_redirect(response)
+
+    with open(book_fullpath, 'wb') as file:
+        file.write(response.content)
+
+    return book_fullpath
 
 
 def main():
@@ -73,11 +96,13 @@ def main():
     env.read_env()
     storage_folder = env('STORAGE_FOLDER')
 
-    for book_id in range(1000):
+    for book_id in range(100):
         try:
-            book = extract_book_name_author(id=book_id)
-            print(f'id - {book["id"]}, книга - {book["name"]},',
-                  f'автор - {book["author"]}')
+            book = extract_book_name_author(book_id)
+            book_url = book['url']
+            book_name = book['name']
+            filepath = download_txt(book_url, book_name, folder=storage_folder)
+            print(filepath)
         except requests.exceptions.HTTPError as err:
             pass
 
