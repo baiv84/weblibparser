@@ -3,6 +3,7 @@ import requests
 from environs import Env
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
+from urllib.parse import urljoin
 
 
 def check_for_redirect(response):
@@ -51,8 +52,10 @@ def download_bunch_of_books(id_start=1,
 
 def extract_book_name_author(id):
     '''Extract book name and author'''
-    url = f'https://tululu.org/b{id}/'
-    response = requests.get(url)
+    base_url = 'https://tululu.org'
+    book_url = urljoin(base_url, f'b{id}')
+
+    response = requests.get(book_url)
     response.raise_for_status()
     check_for_redirect(response)
 
@@ -63,9 +66,13 @@ def extract_book_name_author(id):
     book_name = book_name.lstrip().rstrip()
     book_author = book_author.lstrip().rstrip()
 
+    image_url = soup.find('div', class_="bookimage").find('a').find('img')['src']
+    image_url = urljoin(base_url, image_url)
+
     return {
         'id': id,
         'url': f'http://tululu.org/txt.php?id={id}',
+        'image_url': image_url,
         'name': f'{book_name}.txt',
         'author': book_author,
     }
@@ -90,6 +97,14 @@ def download_txt(url, filename, folder='books/'):
     return book_fullpath
 
 
+def download_image(url, folder='images/'):
+    '''download image to the folder'''
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+
+
+
 def main():
     '''Program entry point'''
     env = Env()
@@ -100,9 +115,11 @@ def main():
         try:
             book = extract_book_name_author(book_id)
             book_url = book['url']
+            image_url = book['image_url']
             book_name = f"{book['id']}. {book['name']}"
             filepath = download_txt(book_url, book_name, folder=storage_folder)
             print(filepath)
+            print(image_url)
         except requests.exceptions.HTTPError as err:
             pass
 
