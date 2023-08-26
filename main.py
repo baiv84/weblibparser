@@ -32,12 +32,16 @@ def serialize_book(book_id):
                     .find('a').find('img')['src']
     image_url = urljoin(base_url, image_url)
 
+    comments = soup.find_all('div', class_='texts')
+    comments_txt = [comment.find('span').text for comment in comments]
+
     return {
         'id': book_id,
         'url': f'http://tululu.org/txt.php?id={book_id}',
         'image_url': image_url,
-        'name': f'{book_name}.txt',
+        'filename': f'{book_name}.txt',
         'author': book_author,
+        'comments': '\n'.join(comments_txt)
     }
 
 
@@ -86,12 +90,13 @@ def main():
     book_folder = env('BOOK_FOLDER')
     image_folder = env('IMAGE_FOLDER')
 
-    for book_id in range(100):
+    for book_id in range(10):
         try:
             book = serialize_book(book_id)
             book_url = book['url']
             image_url = book['image_url']
-            book_name = f"{book['id']}. {book['name']}"
+            book_comments = book['comments']
+            book_name = f"{book['id']}. {book['filename']}"
             image_name = unquote(urlparse(image_url).path.split("/")[-1])
 
             image_filepath = download_image(image_url, image_name,
@@ -99,8 +104,10 @@ def main():
             book_filepath = download_txt(book_url, book_name,
                                          folder=book_folder)
 
+            print('\n****************')
             print(image_filepath)
             print(book_filepath)
+            print(book_comments)
         except requests.exceptions.HTTPError as err:
             pass
 
