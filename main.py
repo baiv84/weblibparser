@@ -66,7 +66,8 @@ def extract_book_name_author(id):
     book_name = book_name.lstrip().rstrip()
     book_author = book_author.lstrip().rstrip()
 
-    image_url = soup.find('div', class_="bookimage").find('a').find('img')['src']
+    image_url = soup.find('div', class_="bookimage") \
+                    .find('a').find('img')['src']
     image_url = urljoin(base_url, image_url)
 
     return {
@@ -101,8 +102,6 @@ def download_image(url, folder='images/'):
     '''download image to the folder'''
     if not os.path.exists(folder):
         os.makedirs(folder)
-
-
 
 
 def main():
