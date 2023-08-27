@@ -35,13 +35,17 @@ def serialize_book(book_id):
     comments = soup.find_all('div', class_='texts')
     comments_txt = [comment.find('span').text for comment in comments]
 
+    genres = soup.find('span', class_='d_book').find_all('a')
+    genres = [genre.text for genre in genres]
+
     return {
         'id': book_id,
         'url': f'http://tululu.org/txt.php?id={book_id}',
         'image_url': image_url,
         'filename': f'{book_name}.txt',
         'author': book_author,
-        'comments': '\n'.join(comments_txt)
+        'comments': '\n'.join(comments_txt),
+        'genres': genres,
     }
 
 
@@ -96,6 +100,7 @@ def main():
             book_url = book['url']
             image_url = book['image_url']
             book_comments = book['comments']
+            book_genres = book['genres']
             book_name = f"{book['id']}. {book['filename']}"
             image_name = unquote(urlparse(image_url).path.split("/")[-1])
 
@@ -108,6 +113,7 @@ def main():
             print(image_filepath)
             print(book_filepath)
             print(book_comments)
+            print(book_genres)
         except requests.exceptions.HTTPError as err:
             pass
 
