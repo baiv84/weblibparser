@@ -1,15 +1,19 @@
 import os
+import logging
+import argparse
 import requests
 from environs import Env
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlparse, unquote
+from parser_exceptions import RedirectException
+from parser_exceptions import StartIdStopIdException
 
 
 def check_for_redirect(response):
     '''Check for redirect URL'''
     if response.url == 'https://tululu.org/':
-        raise requests.HTTPError
+        raise RedirectException
 
 
 def download_txt(url, filename, folder='books/'):
@@ -82,14 +86,21 @@ def main():
     '''Program entry point'''
     env = Env()
     env.read_env()
-    book_folder = env('BOOK_FOLDER')
-    image_folder = env('IMAGE_FOLDER')
-    base_url = env('BASE_URL')
+    book_folder = env('BOOK_FOLDER', 'books/')
+    image_folder = env('IMAGE_FOLDER', 'images/')
+    base_url = env('BASE_URL', 'https://tululu.org')
 
-    start_id = 1
-    end_id = 50
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--start_id', default=1, type=int)
+    parser.add_argument('--stop_id', default=10, type=int)
+    args = parser.parse_args()
 
-    for book_id in range(start_id, end_id+1):
+    start_id = args.start_id
+    stop_id = args.stop_id
+    if stop_id < start_id:
+        raise StartIdStopIdException
+
+    for book_id in range(start_id, stop_id+1):
         try:
             book_url = urljoin(base_url, f'b{book_id}')
             response = requests.get(book_url)
@@ -102,22 +113,34 @@ def main():
             book_image_url = book['book_image_url']
             book_image_url = urljoin(base_url, book_image_url)
 
+            book_name = book['book_name']
+            book_author = book['book_author']
+            book_filename = f"{book_id}. {book['book_filename']}"
+
             book_comments = book['book_comments']
             book_genres = book['book_genres']
-            book_name = f"{book_id}. {book['book_filename']}"
 
             image_filename = unquote(urlparse(book_image_url).path.split("/")[-1])
             image_filepath = download_image(book_image_url, image_filename,
                                             folder=image_folder)
-            book_filepath = download_txt(book_txt_url, book_name,
+            book_filepath = download_txt(book_txt_url, book_filename,
                                          folder=book_folder)
 
-            print('\n****************')
-            print(book_filepath)
-            print(book_genres)
+            print(f'\nНазвание: {book_name}')
+            print(f'Автор: {book_author}')
+        except RedirectException:
+            logging.info(f'Redirect exception - there is no book with URL: {book_url}')
         except requests.exceptions.HTTPError as err:
-            pass
+            logging.info(f'HTTP protocol error - {book_url} is unavailable')
 
 
 if __name__ == '__main__':
-    main()
+    logging.basicConfig(level=logging.INFO,
+                        filename='parser.log',
+                        filemode='w',
+                        format="%(asctime)s %(levelname)s %(message)s")
+    try:
+        main()
+    except StartIdStopIdException:
+        print('Parameters exception: stop_id lower then start_id!')
+        logging.info('Parameters exception: stop_id lower then start_id!')
