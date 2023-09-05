@@ -21,9 +21,7 @@ def download_txt(url, filename, folder='books/'):
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     book_fullpath = os.path.join(folder, filename)
-
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    os.makedirs(folder, exist_ok=True)
 
     response = requests.get(url)
     response.raise_for_status()
@@ -40,9 +38,7 @@ def download_image(url, filename, folder='images/'):
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     image_fullpath = os.path.join(folder, filename)
-
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    os.makedirs(folder, exist_ok=True)
 
     response = requests.get(url)
     response.raise_for_status()
