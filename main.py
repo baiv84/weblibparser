@@ -17,14 +17,15 @@ def check_for_redirect(response):
         raise RedirectException
 
 
-def download_txt(url, filename, folder='books/'):
-    '''Download file as a text'''
+def download_txt(book_id, filename, folder='books/'):
+    '''Download book file as a text'''
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     book_fullpath = os.path.join(folder, filename)
     os.makedirs(folder, exist_ok=True)
 
-    response = requests.get(url)
+    payload = {'id': book_id}
+    response = requests.get('http://tululu.org/txt.php', params=payload)
     response.raise_for_status()
     check_for_redirect(response)
 
@@ -35,7 +36,7 @@ def download_txt(url, filename, folder='books/'):
 
 
 def download_image(url, filename, folder='images/'):
-    '''Download image to the folder'''
+    '''Download book image to the folder'''
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     image_fullpath = os.path.join(folder, filename)
@@ -117,8 +118,6 @@ def main():
             check_for_redirect(response)
 
             book = parse_book_page(response.text)
-            book_txt_url = f'http://tululu.org/txt.php?id={book_id}'
-
             book_image_url = book['book_image_url']
             book_image_url = urljoin(base_url, book_image_url)
 
@@ -133,7 +132,7 @@ def main():
             image_filepath = download_image(book_image_url,
                                             image_filename,
                                             folder=image_folder)
-            book_filepath = download_txt(book_txt_url,
+            book_filepath = download_txt(book_id,
                                          book_filename,
                                          folder=book_folder)
 
