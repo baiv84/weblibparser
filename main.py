@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import argparse
 import requests
@@ -85,6 +86,7 @@ def main():
     book_folder = env('BOOK_FOLDER', 'books/')
     image_folder = env('IMAGE_FOLDER', 'images/')
     base_url = env('BASE_URL', 'https://tululu.org')
+    delay_interval = env.int('DELAY_INTERVAL', 5)
 
     parser = argparse.ArgumentParser(prog='python3 main.py',
                                      description='Parse books and images '
@@ -137,9 +139,16 @@ def main():
 
             print(f'\nНазвание: {book_name}')
             print(f'Автор: {book_author}')
-        except RedirectException:
-            logging.info(f'Redirect exception - there is no book with URL: '
-                         f'{book_url}')
+        except RedirectException as err:
+            logging.info(f'Redirect exception - there is no book with URL: {book_url}')
+        except requests.exceptions.ConnectionError as err:
+            print(f'Network connection error, you should just pray. Sleep for {delay_interval} seconds...')
+            logging.info(f'Network connection error, you should just pray. Sleep for {delay_interval} seconds...')
+            time.sleep(delay_interval)
+        except requests.exceptions.Timeout as err:
+            print(f'Connection timeout, you should just pray. Sleep for {delay_interval} seconds...')
+            logging.info(f'Connection timeout, you should just pray. Sleep for {delay_interval} seconds...')
+            time.sleep(delay_interval)
         except requests.exceptions.HTTPError as err:
             logging.info(f'HTTP protocol error - {book_url} is unavailable')
 
