@@ -90,13 +90,24 @@ def main():
     image_folder = env('IMAGE_FOLDER', 'images/')
     base_url = env('BASE_URL', 'https://tululu.org')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--start_id', default=1, type=int)
-    parser.add_argument('--stop_id', default=10, type=int)
+    parser = argparse.ArgumentParser(prog='python3 main.py',
+                                     description='Parse books and images '
+                                                 'from on-line library: '
+                                                 'https://tululu.org/')
+    parser.add_argument('--start_id',
+                        default=1,
+                        type=int,
+                        help='Determine the first book index to parse. '
+                             'Default index value: %(default)s')
+    parser.add_argument('--stop_id',
+                        default=10,
+                        type=int,
+                        help='Determine the last book index to parse. '
+                             'Default index value: %(default)s')
     args = parser.parse_args()
-
     start_id = args.start_id
     stop_id = args.stop_id
+
     if stop_id < start_id:
         raise StartIdStopIdException
 
@@ -121,15 +132,18 @@ def main():
             book_genres = book['book_genres']
 
             image_filename = unquote(urlparse(book_image_url).path.split("/")[-1])
-            image_filepath = download_image(book_image_url, image_filename,
+            image_filepath = download_image(book_image_url,
+                                            image_filename,
                                             folder=image_folder)
-            book_filepath = download_txt(book_txt_url, book_filename,
+            book_filepath = download_txt(book_txt_url,
+                                         book_filename,
                                          folder=book_folder)
 
             print(f'\nНазвание: {book_name}')
             print(f'Автор: {book_author}')
         except RedirectException:
-            logging.info(f'Redirect exception - there is no book with URL: {book_url}')
+            logging.info(f'Redirect exception - there is no book with URL: '
+                         f'{book_url}')
         except requests.exceptions.HTTPError as err:
             logging.info(f'HTTP protocol error - {book_url} is unavailable')
 
