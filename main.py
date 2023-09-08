@@ -38,9 +38,6 @@ def download_txt(book_id, filename, folder='books/'):
 
 def download_image(url, filename, folder='images/'):
     '''Download book image to the folder'''
-    if filename == 'nopic.gif':
-        return None
-
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     image_fullpath = os.path.join(folder, filename)
@@ -131,20 +128,20 @@ def main():
             book_author = book['book_author']
             book_filename = f"{book_id}. {book['book_filename']}"
 
-            image_fname = unquote(urlparse(book_image_url).path.split("/")[-1])
-            saved_image_filepath = download_image(book_image_url,
-                                                  image_fname,
-                                                  folder=book_image_folder)
-            if not saved_image_filepath:
-                logging.info(f"Book '{book_name}' has no avatar picture. "
-                             f"Book URL - {book_page_url}")
-
             saved_txt_filepath = download_txt(book_id,
                                               book_filename,
                                               folder=book_txt_folder)
-
             print(f'\nНазвание: {book_name}')
             print(f'Автор: {book_author}')
+
+            image_fname = unquote(urlparse(book_image_url).path.split("/")[-1])
+            if image_fname != 'nopic.gif':
+                saved_image_filepath = download_image(book_image_url,
+                                                      image_fname,
+                                                      folder=book_image_folder)
+            else:
+                logging.info(f"Book '{book_name}' has no avatar picture. "
+                             f"Book URL - {book_page_url}")
         except RedirectException as err:
             logging.info(f'Redirect exception - there is no book with URL: '
                          f'{book_page_url}')
