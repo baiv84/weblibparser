@@ -11,9 +11,10 @@ from parser_exceptions import RedirectException
 from parser_exceptions import StartIdStopIdException
 
 
-def check_for_redirect(response):
-    '''Check for redirect URL'''
-    if response.url == 'https://tululu.org/':
+def check_for_tululu_redirect(response):
+    '''Check for redirection to the tululu.org main page'''
+    main_page_url = 'https://tululu.org/'
+    if response.url == main_page_url:
         raise RedirectException
 
 
@@ -27,7 +28,7 @@ def download_txt(book_id, filename, folder='books/'):
     payload = {'id': book_id}
     response = requests.get('http://tululu.org/txt.php', params=payload)
     response.raise_for_status()
-    check_for_redirect(response)
+    check_for_tululu_redirect(response)
 
     with open(book_fullpath, 'wb') as file:
         file.write(response.content)
@@ -37,6 +38,9 @@ def download_txt(book_id, filename, folder='books/'):
 
 def download_image(url, filename, folder='images/'):
     '''Download book image to the folder'''
+    if filename == 'nopic.gif':
+        return None
+
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
     image_fullpath = os.path.join(folder, filename)
@@ -44,7 +48,7 @@ def download_image(url, filename, folder='images/'):
 
     response = requests.get(url)
     response.raise_for_status()
-    check_for_redirect(response)
+    check_for_tululu_redirect(response)
 
     with open(image_fullpath, 'wb') as file:
         file.write(response.content)
@@ -61,22 +65,22 @@ def parse_book_page(html):
     book_name = book_name.lstrip().rstrip()
     book_author = book_author.lstrip().rstrip()
 
-    image_url = soup.find('div', class_="bookimage") \
-                    .find('a').find('img')['src']
+    book_image_relative_url = soup.find('div', class_="bookimage") \
+                                  .find('a').find('img')['src']
 
     comments = soup.find_all('div', class_='texts')
     comments_txt = [comment.find('span').text for comment in comments]
 
-    genres = soup.find('span', class_='d_book').find_all('a')
-    genres = [genre.text for genre in genres]
+    book_genres = soup.find('span', class_='d_book').find_all('a')
+    book_genres = [genre.text for genre in book_genres]
 
     return {
         'book_name': book_name,
         'book_author': book_author,
         'book_comments': '\n'.join(comments_txt),
-        'book_genres': genres,
+        'book_genres': book_genres,
         'book_filename': f'{book_name}.txt',
-        'book_image_url': image_url,
+        'book_image_relative_url': book_image_relative_url,
     }
 
 
@@ -84,15 +88,15 @@ def main():
     '''Program entry point'''
     env = Env()
     env.read_env()
-    book_folder = env('BOOK_FOLDER', 'books/')
-    image_folder = env('IMAGE_FOLDER', 'images/')
-    base_url = env('BASE_URL', 'https://tululu.org')
+    book_txt_folder = env('BOOK_TXT_FOLDER', 'books/')
+    book_image_folder = env('BOOK_IMAGE_FOLDER', 'images/')
     delay_interval = env.int('DELAY_INTERVAL', 5)
+    main_page_url = 'https://tululu.org/'
 
     parser = argparse.ArgumentParser(prog='python3 main.py',
-                                     description='Parse books and images '
-                                                 'from on-line library: '
-                                                 'https://tululu.org/')
+                                     description=f'Parse books and images '
+                                                 f'from on-line library: '
+                                                 f'{main_page_url}')
     parser.add_argument('--start_id',
                         default=1,
                         type=int,
@@ -112,44 +116,53 @@ def main():
 
     for book_id in range(start_id, stop_id+1):
         try:
-            book_url = urljoin(base_url, f'b{book_id}')
-            response = requests.get(book_url)
+            book_page_url = urljoin(main_page_url, f'b{book_id}')
+            response = requests.get(book_page_url)
             response.raise_for_status()
-            check_for_redirect(response)
+            check_for_tululu_redirect(response)
 
-            book = parse_book_page(response.text)
-            book_image_url = book['book_image_url']
-            book_image_url = urljoin(base_url, book_image_url)
+            book_html = response.text
+            book = parse_book_page(book_html)
+
+            book_image_relative_url = book['book_image_relative_url']
+            book_image_url = urljoin(book_page_url, book_image_relative_url)
 
             book_name = book['book_name']
             book_author = book['book_author']
             book_filename = f"{book_id}. {book['book_filename']}"
 
-            book_comments = book['book_comments']
-            book_genres = book['book_genres']
+            image_fname = unquote(urlparse(book_image_url).path.split("/")[-1])
+            saved_image_filepath = download_image(book_image_url,
+                                                  image_fname,
+                                                  folder=book_image_folder)
+            if not saved_image_filepath:
+                logging.info(f"Book '{book_name}' has no avatar picture. "
+                             f"Book URL - {book_page_url}")
 
-            image_filename = unquote(urlparse(book_image_url).path.split("/")[-1])
-            image_filepath = download_image(book_image_url,
-                                            image_filename,
-                                            folder=image_folder)
-            book_filepath = download_txt(book_id,
-                                         book_filename,
-                                         folder=book_folder)
+            saved_txt_filepath = download_txt(book_id,
+                                              book_filename,
+                                              folder=book_txt_folder)
 
             print(f'\nНазвание: {book_name}')
             print(f'Автор: {book_author}')
         except RedirectException as err:
-            logging.info(f'Redirect exception - there is no book with URL: {book_url}')
+            logging.info(f'Redirect exception - there is no book with URL: '
+                         f'{book_page_url}')
         except requests.exceptions.ConnectionError as err:
-            print(f'Network connection error, you should just pray. Sleep for {delay_interval} seconds...')
-            logging.info(f'Network connection error, you should just pray. Sleep for {delay_interval} seconds...')
+            print(f'Network connection error, you should just pray. '
+                  f'Sleep for {delay_interval} seconds...')
+            logging.info(f'Network connection error, you should just pray. '
+                         f'Sleep for {delay_interval} seconds...')
             time.sleep(delay_interval)
         except requests.exceptions.Timeout as err:
-            print(f'Connection timeout, you should just pray. Sleep for {delay_interval} seconds...')
-            logging.info(f'Connection timeout, you should just pray. Sleep for {delay_interval} seconds...')
+            print(f'Connection timeout, you should just pray. '
+                  f'Sleep for {delay_interval} seconds...')
+            logging.info(f'Connection timeout, you should just pray. '
+                         f'Sleep for {delay_interval} seconds...')
             time.sleep(delay_interval)
         except requests.exceptions.HTTPError as err:
-            logging.info(f'HTTP protocol error - {book_url} is unavailable')
+            logging.info(f'HTTP protocol error '
+                         f'{book_page_url} is unavailable')
 
 
 if __name__ == '__main__':
