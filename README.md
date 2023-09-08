@@ -1,5 +1,9 @@
 # On-line library `tululu.org` parser
 
+## Description
+
+Script parses books texts and images from on-line library: https://tululu.org/ and puts it to the local folders.
+
 ## Prepare virtual environment
 
 First, install package `python3-venv` to work with python virtual environment.
@@ -55,9 +59,9 @@ This script read environment variables from external file `.env`
 
 These variables are:
 
-- BASE_URL   (on-line library URL)
-- BOOK_FOLDER  (local folder to save books as a TXT files)
-- IMAGE_FOLDER (local folder to save books images as graphic files)
+- BOOK_TXT_FOLDER  (local folder to save books as a TXT files)
+- BOOK_IMAGE_FOLDER (local folder to save books images as graphic files)
+- DELAY_INTERVAL (time delay before next network operation in case of collision)
 
 Setup these options in accordance with your purposes and objectives.
 
@@ -65,9 +69,9 @@ In case of `.env` file absence, script will parse on-line library with default p
 
 Default parameters to parse on-line library are:
 
-- BASE_URL = 'https://tululu.org'
-- BOOK_FOLDER = 'books/'
-- IMAGE_FOLDER = 'images/'
+- BOOK_TXT_FOLDER = 'books/'
+- BOOK_IMAGE_FOLDER = 'images/'
+- DELAY_INTERVAL = 5
 
 # Run script
 
@@ -88,11 +92,18 @@ You can setup book range for scanning, running script with options:
 (venv) weblibparser $  python3 main.py --start_id 20 --stop_id 30      
 ```
 
-Be careful with with script parameters: `--stop_id` must be larger then `start_id`.
+Be careful with script parameters: `--stop_id` must be larger then `start_id`.
+
+Script catch incorrect input parameters and throw error message in case of collision.
 
 After success parsing, you will see picture like this:
 
 ![Скриншот](screenshots/parse.png)
+
+
+# Result log file
+
+Script writes log file `parser.log` with errors and collisions events. It allows you to figure out and fix occurred issues. 
 
 # Projects goals
 
