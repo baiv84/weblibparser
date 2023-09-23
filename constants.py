@@ -1,0 +1,1 @@
+MAIN_PAGE_URL = 'https://tululu.org/'
