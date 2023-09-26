@@ -12,7 +12,6 @@ from parser_exceptions import RedirectException
 from parser_exceptions import StartIdStopIdException
 
 
-
 def check_for_tululu_redirect(response):
     '''Check for redirection to the tululu.org main page'''
     if response.url == MAIN_PAGE_URL:
@@ -55,19 +54,18 @@ def main():
     env = Env()
     env.read_env()
     genre_id = env.int('BOOKS_GENRE', 55)
-    page_num = 1
 
-    genre_url_page = get_genre_bookpage_url(genre_id=genre_id,
-                                            book_page_num=page_num)
-    response = requests.get(genre_url_page)
-    response.raise_for_status()
-    check_for_tululu_redirect(response)
-    html = response.text
-    print(get_first_book_url(html=html))
+    for page_id in range(1, 11):
+        genre_url_page = get_genre_bookpage_url(genre_id=genre_id,
+                                                book_page_num=page_id)
+        response = requests.get(genre_url_page)
+        response.raise_for_status()
+        check_for_tululu_redirect(response)
+        html = response.text
 
-    page_books_urls = get_page_book_urls(html=html)['page_books_urls']
-    for book_url in page_books_urls:
-        print(book_url)
+        page_books_urls = get_page_book_urls(html=html)['page_books_urls']
+        for book_url in page_books_urls:
+            print(book_url)
 
 
 if __name__ == '__main__':
