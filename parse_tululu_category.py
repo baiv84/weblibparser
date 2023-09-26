@@ -67,7 +67,6 @@ def main():
         for book_url in page_books_urls:
             print(book_url)
 
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         filename='parser.log',
