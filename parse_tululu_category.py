@@ -12,6 +12,7 @@ from parser_exceptions import RedirectException
 from parser_exceptions import StartIdStopIdException
 
 
+
 def check_for_tululu_redirect(response):
     '''Check for redirection to the tululu.org main page'''
     if response.url == MAIN_PAGE_URL:
@@ -34,9 +35,9 @@ def get_first_book_url(html):
     return book_url
 
 
-def get_all_book_urls(html):
+def get_page_book_urls(html):
     '''Get all books URLs from the page'''
-    book_urls = []
+    page_books_urls = []
     soup = BeautifulSoup(html, 'lxml')
     book_cards = soup.find_all('table', class_='d_book')
 
@@ -45,9 +46,9 @@ def get_all_book_urls(html):
         _, book_url_section, _, _, _, _ = book_rows
         book_url = book_url_section.find('a')['href']
         book_url = urljoin(MAIN_PAGE_URL, f'{book_url}')
-        book_urls.append(book_url)
-    return {'book_urls': book_urls,
-            'books_number': len(book_urls)}
+        page_books_urls.append(book_url)
+    return {'page_books_urls': page_books_urls,
+            'page_books_number': len(page_books_urls)}
 
 
 def main():
@@ -63,6 +64,10 @@ def main():
     check_for_tululu_redirect(response)
     html = response.text
     print(get_first_book_url(html=html))
+
+    page_books_urls = get_page_book_urls(html=html)['page_books_urls']
+    for book_url in page_books_urls:
+        print(book_url)
 
 
 if __name__ == '__main__':
