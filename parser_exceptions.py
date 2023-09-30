@@ -14,3 +14,12 @@ class StartIdStopIdException(Exception):
 
     def __str__(self):
         return '{0}'.format(self.message)
+
+
+class BookTextDownloadException(Exception):
+    '''Book does not have TXT file exception'''
+    def __init__(self, *args):
+        self.message = 'Book does not have TXT file exception'
+
+    def __str__(self):
+        return '{0}'.format(self.message)

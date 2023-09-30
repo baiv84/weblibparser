@@ -1,21 +1,15 @@
-import os
-import time
+import json
 import logging
-import argparse
 import requests
 from environs import Env
 from bs4 import BeautifulSoup
+from main import download_txt
+from main import download_image
+from main import parse_book_page
+from urllib.parse import urljoin
+from parser_exceptions import BookTextDownloadException
 from constants import MAIN_PAGE_URL as MAIN_PAGE_URL
-from pathvalidate import sanitize_filename
-from urllib.parse import urljoin, urlparse, unquote
-from parser_exceptions import RedirectException
-from parser_exceptions import StartIdStopIdException
-
-
-def check_for_tululu_redirect(response):
-    '''Check for redirection to the tululu.org main page'''
-    if response.url == MAIN_PAGE_URL:
-        raise RedirectException
+from constants import SCIENCE_FICTION_GENRE_ID as SCIENCE_FICTION_GENRE_ID
 
 
 def get_genre_bookpage_url(genre_id, book_page_num=1):
@@ -24,19 +18,14 @@ def get_genre_bookpage_url(genre_id, book_page_num=1):
     return urljoin(category_page_url, f'{book_page_num}/')
 
 
-def get_first_book_url(html):
-    '''Get first book URL on the book page'''
-    soup = BeautifulSoup(html, 'lxml')
-    first_book_card = soup.find('table', class_='d_book')
-    _, book_url_section, _, _, _, _ = first_book_card.find_all('tr')
-    book_url = book_url_section.find('a')['href']
-    book_url = urljoin(MAIN_PAGE_URL, f'{book_url}')
-    return book_url
-
-
-def get_page_book_urls(html):
+def get_page_book_urls(url):
     '''Get all books URLs from the page'''
     page_books_urls = []
+
+    response = requests.get(url)
+    response.raise_for_status()
+    html = response.text
+
     soup = BeautifulSoup(html, 'lxml')
     book_cards = soup.find_all('table', class_='d_book')
 
@@ -46,37 +35,72 @@ def get_page_book_urls(html):
         book_url = book_url_section.find('a')['href']
         book_url = urljoin(MAIN_PAGE_URL, f'{book_url}')
         page_books_urls.append(book_url)
-    return {'page_books_urls': page_books_urls,
-            'page_books_number': len(page_books_urls)}
+
+    return {'books_url': page_books_urls,
+            'books_number': len(page_books_urls)}
 
 
 def main():
     env = Env()
     env.read_env()
-    genre_id = env.int('BOOKS_GENRE', 55)
+    genre_id = env.int('BOOKS_GENRE', SCIENCE_FICTION_GENRE_ID)
+    txt_folder = env('BOOK_TXT_FOLDER', 'books')
+    img_folder = env('BOOK_IMAGE_FOLDER', 'images')
 
-    for page_id in range(1, 11):
+    books_serialized = []
+    for page_id in range(1, 5):
         genre_url_page = get_genre_bookpage_url(genre_id=genre_id,
-                                                book_page_num=page_id)
-        response = requests.get(genre_url_page)
-        response.raise_for_status()
-        check_for_tululu_redirect(response)
-        html = response.text
+                                                book_page_num=page_id
+                                                )
+        page_books = get_page_book_urls(genre_url_page)
+        page_books_urls = page_books['books_url']
 
-        page_books_urls = get_page_book_urls(html=html)['page_books_urls']
         for book_url in page_books_urls:
-            print(book_url)
+            book = parse_book_page(book_url,
+                                   txt_folder=txt_folder,
+                                   img_folder=img_folder)
+            title = book['title']
+            print(f'Get book - {title}, URL - {book_url}')
+
+            txt_url = book['book_txt_link']
+            img_url = book['book_img_link']
+
+            txt_filename = book['txt_filename']
+            img_filename = book['image_filename']
+
+            try:
+                download_txt(txt_url, txt_filename, folder=txt_folder)
+            except BookTextDownloadException:
+                print(f'+++++{book_url} -> Book does not contain text file...')
+                logging.info(f'+++++{book_url} ->'
+                             'Book does not contain text file...')
+                continue
+
+            print('--->>>continue grab IMG')
+            download_image(img_url, img_filename, folder=img_folder)
+
+            # Clean book dictionary
+            for key in ('image_filename', 'txt_filename',
+                        'book_txt_link', 'book_img_link',
+                        ):
+                book.pop(key)
+
+            # Store book dict item
+            print('*****->>>continue append JSON')
+            books_serialized.append(book)
+
+    print('Store JSON data...')
+    books_in_json = json.dumps(books_serialized,
+                               indent=4,
+                               ensure_ascii=False
+                               )
+    with open('books.json', 'w') as books_json:
+        books_json.write(books_in_json)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         filename='parser.log',
                         filemode='w',
                         format="%(asctime)s %(levelname)s %(message)s")
-    try:
-        main()
-    except RedirectException as err:
-        print('Redirect to the main page exception!')
-        logging.info('Redirect to the main page exception!')
-    except requests.exceptions.HTTPError as err:
-        print(f'HTTP protocol error!')
-        logging.info(f'HTTP protocol error!')
+    main()
