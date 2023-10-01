@@ -64,7 +64,7 @@ def parse_book_page(url,
 
     html = response.text
     soup = BeautifulSoup(html, 'lxml')
-    book = soup.find('div', id='content').find('h1').text
+    book = soup.select_one('div[id=content] h1').text
     book_title, book_author = book.split('::')
 
     book_title = book_title.lstrip().rstrip()
@@ -73,23 +73,21 @@ def parse_book_page(url,
     result = re.search(r'b(\d+)/$', url)
     book_id = result.group(1)
 
-    book_img_relative_url = soup.find('div', class_="bookimage") \
-                                .find('a').find('img')['src']
-
+    book_img_relative_url = soup.select_one('div.bookimage a img')['src']
     img_fname = unquote(urlparse(book_img_relative_url).path.split("/")[-1])
 
-    comments = soup.find_all('div', class_='texts')
-    comments_txt = [comment.find('span').text for comment in comments]
+    comments = soup.select('div.texts span.black')
+    comments = list(map(lambda comment: comment.text, comments))
 
-    book_genres = soup.find('span', class_='d_book').find_all('a')
-    book_genres = [genre.text for genre in book_genres]
+    book_genres = soup.select('span.d_book a')
+    book_genres = list(map(lambda genre: genre.text, book_genres))
 
     return {
         'title': book_title,
         'author': book_author,
         'img_src': os.path.join(img_folder, img_fname),
         'book_path': os.path.join(txt_folder, f'{book_title}.txt'),
-        'comments': comments_txt,
+        'comments': comments,
         'genres': book_genres,
         'image_filename': img_fname,
         'txt_filename': f'{book_title}.txt',

@@ -27,12 +27,12 @@ def get_page_book_urls(url):
     html = response.text
 
     soup = BeautifulSoup(html, 'lxml')
-    book_cards = soup.find_all('table', class_='d_book')
+    book_cards = soup.select('table.d_book')
 
     for book_card in book_cards:
-        book_rows = book_card.find_all('tr')
+        book_rows = book_card.select('tr')
         _, book_url_section, _, _, _, _ = book_rows
-        book_url = book_url_section.find('a')['href']
+        book_url = book_url_section.select_one('a')['href']
         book_url = urljoin(MAIN_PAGE_URL, f'{book_url}')
         page_books_urls.append(book_url)
 
