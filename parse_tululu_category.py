@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 from parser_exceptions import StartIdStopIdException
 from parser_exceptions import BookTextDownloadException
 from constants import MAIN_PAGE_URL as MAIN_PAGE_URL
-from constants import SCIENCE_FICTION_GENRE_ID as SCIENCE_FICTION_GENRE_ID
+from constants import SCIENCE_FICTION_GENRE_ID as SCI_FICT_ID
 
 
 def get_genre_bookpage_url(genre_id, book_page_num=1):
@@ -44,7 +44,7 @@ def get_page_book_urls(url):
 
 def calculate_genre_pages_number(genre_id=55):
     '''Get genre pages number.
-       By default, use genre_id=55, science fiction category 
+       By default, use genre_id=55, science fiction category
     '''
     category_page_url = urljoin(MAIN_PAGE_URL, f'l{genre_id}/')
     response = requests.get(category_page_url)
@@ -60,11 +60,11 @@ def calculate_genre_pages_number(genre_id=55):
 def main():
     env = Env()
     env.read_env()
-    genre_id = env.int('BOOKS_GENRE', SCIENCE_FICTION_GENRE_ID)
+    genre_id = env.int('BOOKS_GENRE', SCI_FICT_ID)
     main_page_url = 'https://tululu.org/'
     txt_folder = env('BOOK_TXT_FOLDER', 'books')
     img_folder = env('BOOK_IMAGE_FOLDER', 'images')
-
+    science_bookpage_number = calculate_genre_pages_number(SCI_FICT_ID)
 
     parser = argparse.ArgumentParser(prog='python3 parse_tululu_category.py',
                                      description=f'Parse books and images '
@@ -76,23 +76,21 @@ def main():
                         help='Determine the first book page index to parse '
                              'Default index value: %(default)s')
     parser.add_argument('--end_page',
-                        default=calculate_genre_pages_number(genre_id=55),
+                        default=(science_bookpage_number + 1),
                         type=int,
                         help='Determine the last book index to parse. '
                              'Default index value: %(default)s')
-    
+
     args = parser.parse_args()
     start_page_id = args.start_page
-    stop_page_id = args.end_page
+    end_page_id = args.end_page
+    # print(f'from - {start_page_id}, to - {end_page_id} ')
 
-    print(start_page_id, stop_page_id)
-
-    if stop_page_id < start_page_id:
+    if end_page_id < start_page_id:
         raise StartIdStopIdException
-    
+
     books_serialized = []
-    for page_id in range(start_page_id, stop_page_id+1):
-        print(page_id)
+    for page_id in range(start_page_id, end_page_id):
         genre_url_page = get_genre_bookpage_url(genre_id=genre_id,
                                                 book_page_num=page_id
                                                 )
@@ -104,7 +102,8 @@ def main():
                                    txt_folder=txt_folder,
                                    img_folder=img_folder)
             title = book['title']
-            print(f'Get book - {title}, URL - {book_url}')
+            # print(f'Get book - {title}, URL - {book_url}')
+            print(f'{book_url}')
 
             txt_url = book['book_txt_link']
             img_url = book['book_img_link']
@@ -115,12 +114,11 @@ def main():
             try:
                 download_txt(txt_url, txt_filename, folder=txt_folder)
             except BookTextDownloadException:
-                print(f'+++++{book_url} -> Book does not contain text file...')
                 logging.info(f'+++++{book_url} ->'
                              'Book does not contain text file...')
                 continue
 
-            print('--->>>continue grab IMG')
+            # print('--->>>continue grab IMG')
             download_image(img_url, img_filename, folder=img_folder)
 
             # Clean book dictionary
@@ -130,10 +128,10 @@ def main():
                 book.pop(key)
 
             # Store book dict item
-            print('*****->>>continue append JSON')
+            # print('*****->>>continue append JSON')
             books_serialized.append(book)
 
-    print('Store JSON data...')
+    # print('Store JSON data...')
     books_in_json = json.dumps(books_serialized,
                                indent=4,
                                ensure_ascii=False
@@ -147,7 +145,8 @@ if __name__ == '__main__':
                         filename='parser.log',
                         filemode='w',
                         format="%(asctime)s %(levelname)s %(message)s")
-    main()
-
-    # page_number = calculate_genre_pages_number(6)
-    # print(page_number)
+    try:
+        main()
+    except StartIdStopIdException:
+        print('Parameters exception: end_page lower then start_page!')
+        logging.info('Parameters exception: end_page lower then start_page!')
