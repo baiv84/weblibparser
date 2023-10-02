@@ -1,5 +1,6 @@
 import json
 import logging
+import argparse
 import requests
 from environs import Env
 from bs4 import BeautifulSoup
@@ -7,6 +8,7 @@ from main import download_txt
 from main import download_image
 from main import parse_book_page
 from urllib.parse import urljoin
+from parser_exceptions import StartIdStopIdException
 from parser_exceptions import BookTextDownloadException
 from constants import MAIN_PAGE_URL as MAIN_PAGE_URL
 from constants import SCIENCE_FICTION_GENRE_ID as SCIENCE_FICTION_GENRE_ID
@@ -40,15 +42,57 @@ def get_page_book_urls(url):
             'books_number': len(page_books_urls)}
 
 
+def calculate_genre_pages_number(genre_id=55):
+    '''Get genre pages number.
+       By default, use genre_id=55, science fiction category 
+    '''
+    category_page_url = urljoin(MAIN_PAGE_URL, f'l{genre_id}/')
+    response = requests.get(category_page_url)
+    response.raise_for_status()
+    html = response.text
+
+    soup = BeautifulSoup(html, 'lxml')
+    pages_list = soup.select('a.npage')
+    pages_num = list(pages_list)[-1]
+    return int(pages_num.text)
+
+
 def main():
     env = Env()
     env.read_env()
     genre_id = env.int('BOOKS_GENRE', SCIENCE_FICTION_GENRE_ID)
+    main_page_url = 'https://tululu.org/'
     txt_folder = env('BOOK_TXT_FOLDER', 'books')
     img_folder = env('BOOK_IMAGE_FOLDER', 'images')
 
+
+    parser = argparse.ArgumentParser(prog='python3 parse_tululu_category.py',
+                                     description=f'Parse books and images '
+                                                 f'from on-line library: '
+                                                 f'{main_page_url}')
+    parser.add_argument('--start_page',
+                        default=1,
+                        type=int,
+                        help='Determine the first book page index to parse '
+                             'Default index value: %(default)s')
+    parser.add_argument('--end_page',
+                        default=calculate_genre_pages_number(genre_id=55),
+                        type=int,
+                        help='Determine the last book index to parse. '
+                             'Default index value: %(default)s')
+    
+    args = parser.parse_args()
+    start_page_id = args.start_page
+    stop_page_id = args.end_page
+
+    print(start_page_id, stop_page_id)
+
+    if stop_page_id < start_page_id:
+        raise StartIdStopIdException
+    
     books_serialized = []
-    for page_id in range(1, 5):
+    for page_id in range(start_page_id, stop_page_id+1):
+        print(page_id)
         genre_url_page = get_genre_bookpage_url(genre_id=genre_id,
                                                 book_page_num=page_id
                                                 )
@@ -104,3 +148,6 @@ if __name__ == '__main__':
                         filemode='w',
                         format="%(asctime)s %(levelname)s %(message)s")
     main()
+
+    # page_number = calculate_genre_pages_number(6)
+    # print(page_number)
