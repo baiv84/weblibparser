@@ -18,6 +18,7 @@ def download_txt(url, filename, folder='books/'):
     main_page_url = 'https://tululu.org/'
     folder = sanitize_filename(folder)
     filename = sanitize_filename(filename)
+
     book_fullpath = os.path.join(folder, filename)
     os.makedirs(folder, exist_ok=True)
 
@@ -51,7 +52,9 @@ def download_image(url, filename, folder='images/'):
 
 def parse_book_page(url,
                     txt_folder='books',
-                    img_folder='images'
+                    img_folder='images',
+                    skip_imgs=False,
+                    skip_txt=False
                     ):
     '''Parse book page for fields'''
     main_page_url = 'https://tululu.org/'
@@ -85,8 +88,8 @@ def parse_book_page(url,
     return {
         'title': book_title,
         'author': book_author,
-        'img_src': os.path.join(img_folder, img_fname),
-        'book_path': os.path.join(txt_folder, f'{book_title}.txt'),
+        'img_src': '' if skip_imgs else os.path.join(img_folder, img_fname),
+        'book_path': '' if skip_txt else os.path.join(txt_folder, f'{book_title}.txt'),
         'comments': comments,
         'genres': book_genres,
         'image_filename': img_fname,

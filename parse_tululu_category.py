@@ -81,10 +81,16 @@ def main():
                         help='Determine the last book index to parse. '
                              'Default index value: %(default)s')
 
+    parser.add_argument('--skip_imgs', action='store_const', const=True)
+
+    parser.add_argument('--skip_txt', action='store_const', const=True)
+
     args = parser.parse_args()
+
     start_page_id = args.start_page
     end_page_id = args.end_page
-    # print(f'from - {start_page_id}, to - {end_page_id} ')
+    skip_imgs = args.skip_imgs
+    skip_txt = args.skip_txt
 
     if end_page_id < start_page_id:
         raise StartIdStopIdException
@@ -100,9 +106,11 @@ def main():
         for book_url in page_books_urls:
             book = parse_book_page(book_url,
                                    txt_folder=txt_folder,
-                                   img_folder=img_folder)
+                                   img_folder=img_folder,
+                                   skip_txt=skip_txt,
+                                   skip_imgs=skip_imgs)
+
             title = book['title']
-            # print(f'Get book - {title}, URL - {book_url}')
             print(f'{book_url}')
 
             txt_url = book['book_txt_link']
@@ -112,14 +120,15 @@ def main():
             img_filename = book['image_filename']
 
             try:
-                download_txt(txt_url, txt_filename, folder=txt_folder)
+                if not skip_txt:
+                    download_txt(txt_url, txt_filename, folder=txt_folder)
             except BookTextDownloadException:
                 logging.info(f'+++++{book_url} ->'
                              'Book does not contain text file...')
                 continue
 
-            # print('--->>>continue grab IMG')
-            download_image(img_url, img_filename, folder=img_folder)
+            if not skip_imgs:
+                download_image(img_url, img_filename, folder=img_folder)
 
             # Clean book dictionary
             for key in ('image_filename', 'txt_filename',
@@ -128,7 +137,6 @@ def main():
                 book.pop(key)
 
             # Store book dict item
-            # print('*****->>>continue append JSON')
             books_serialized.append(book)
 
     # print('Store JSON data...')
