@@ -112,7 +112,7 @@ def main():
             img_folder = os.path.join(dest_folder, 'images')
             os.makedirs(img_folder, exist_ok=True)
 
-    except PermissionError:
+    except (OSError, PermissionError):
         print(f'Permission error with folder {dest_folder}.'
               f'Current directory - {os.getcwd()} will be used!')
         dest_folder = os.getcwd()
@@ -177,7 +177,7 @@ def main():
                                indent=4,
                                ensure_ascii=False
                                )
-    with open('books.json', 'w') as books_json:
+    with open(os.path.join(dest_folder, 'books.json'), 'w') as books_json:
         books_json.write(books_in_json)
 
 
