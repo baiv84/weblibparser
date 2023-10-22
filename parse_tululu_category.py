@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import argparse
@@ -62,8 +63,9 @@ def main():
     env.read_env()
     genre_id = env.int('BOOKS_GENRE', SCI_FICT_ID)
     main_page_url = 'https://tululu.org/'
-    txt_folder = env('BOOK_TXT_FOLDER', 'books')
-    img_folder = env('BOOK_IMAGE_FOLDER', 'images')
+    txt_folder = ''
+    img_folder = ''
+
     science_bookpage_number = calculate_genre_pages_number(SCI_FICT_ID)
 
     parser = argparse.ArgumentParser(prog='python3 parse_tululu_category.py',
@@ -85,12 +87,43 @@ def main():
 
     parser.add_argument('--skip_txt', action='store_const', const=True)
 
+    parser.add_argument('--dest_folder',
+                        default=os.getcwd(),
+                        help='Determine the folder to store parsing content')
+
     args = parser.parse_args()
 
     start_page_id = args.start_page
     end_page_id = args.end_page
+
     skip_imgs = args.skip_imgs
     skip_txt = args.skip_txt
+    dest_folder = args.dest_folder
+
+    try:
+        if not os.path.exists(dest_folder):
+            os.makedirs(dest_folder)
+
+        if not skip_txt:
+            txt_folder = os.path.join(dest_folder, 'books')
+            os.makedirs(txt_folder, exist_ok=True)
+
+        if not skip_imgs:
+            img_folder = os.path.join(dest_folder, 'images')
+            os.makedirs(img_folder, exist_ok=True)
+
+    except PermissionError:
+        print(f'Permission error with folder {dest_folder}.'
+              f'Current directory - {os.getcwd()} will be used!')
+        dest_folder = os.getcwd()
+
+        if not skip_txt:
+            txt_folder = os.path.join(dest_folder, 'books')
+            os.makedirs(txt_folder, exist_ok=True)
+
+        if not skip_imgs:
+            img_folder = os.path.join(dest_folder, 'images')
+            os.makedirs(img_folder, exist_ok=True)
 
     if end_page_id < start_page_id:
         raise StartIdStopIdException

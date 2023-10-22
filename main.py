@@ -16,11 +16,8 @@ from parser_exceptions import StartIdStopIdException
 def download_txt(url, filename, folder='books/'):
     '''Download book file as a text'''
     main_page_url = 'https://tululu.org/'
-    folder = sanitize_filename(folder)
-    filename = sanitize_filename(filename)
 
     book_fullpath = os.path.join(folder, filename)
-    os.makedirs(folder, exist_ok=True)
 
     response = requests.get(url)
     response.raise_for_status()
@@ -36,10 +33,7 @@ def download_txt(url, filename, folder='books/'):
 
 def download_image(url, filename, folder='images/'):
     '''Download book image to the folder'''
-    folder = sanitize_filename(folder)
-    filename = sanitize_filename(filename)
     image_fullpath = os.path.join(folder, filename)
-    os.makedirs(folder, exist_ok=True)
 
     response = requests.get(url)
     response.raise_for_status()
@@ -103,8 +97,6 @@ def main():
     '''Program entry point'''
     env = Env()
     env.read_env()
-    book_txt_folder = env('BOOK_TXT_FOLDER', 'books/')
-    book_image_folder = env('BOOK_IMAGE_FOLDER', 'images/')
     delay_interval = env.int('DELAY_INTERVAL', 5)
     main_page_url = 'https://tululu.org/'
 
