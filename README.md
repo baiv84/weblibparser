@@ -1,110 +1,135 @@
-# On-line library `tululu.org` parser
+# Description
 
-## Description
+Script parses book texts and images from on-line library: https://tululu.org/ and puts it to the folders, determined by the user.
 
-Script parses books texts and images from on-line library: https://tululu.org/ and puts it to the local folders.
+# Install tools
 
-## Prepare virtual environment
+## python3-venv
+```bash
+apt update && apt install -y python3-venv
 
-First, install package `python3-venv` to work with python virtual environment.
-
-Update packages on your system `!(it depends on your operating system)`
-in this document I use Ubuntu as my operating system. 
-
-So I run update command:
-
-```console
-$ sudo apt update
+cd weblibparser
 ```
 
-and run command:
+## Create & activate virtual environment
+```bash
+python3 -m venv venv
 
-```console
-$ sudo apt install -y python3-venv
+source venv/bin/activate
 ```
 
-Then jump to project folder:
+## Install dependencies
 
-```console
-$ cd weblibparser
+```bash
+pip3 install -r requirements.txt
 ```
-
-and create new python environment to run the code:
-```console
-$ python3 -m venv venv
-```
-
-Activate new virtual environment:
-
-```console
-$ source venv/bin/activate
-```
-
-As a result, you will see command line prompt like this:
-
-```console
-(venv) weblibparser $
-```
-
-Next step, install all necessary dependencies
-
-```console
-(venv) weblibparser $  pip3 install -r requirements.txt
-```
-
 
 ## Prepare .env file
 
-This script read environment variables from external file `.env`
+Available variables are:
 
-These variables are:
+- BOOKS_GENRE  (define book genre to parse)
 
-- BOOK_TXT_FOLDER  (local folder to save books as a TXT files)
-- BOOK_IMAGE_FOLDER (local folder to save books images as graphic files)
-- DELAY_INTERVAL (time delay before next network operation in case of collision)
-
-Setup these options in accordance with your purposes and objectives.
-
-In case of `.env` file absence, script will parse on-line library with default parameters to save books and images to the computer.
+In case of `.env` file absence, script will parse books of science fiction genre over on-line library.
 
 Default parameters to parse on-line library are:
 
-- BOOK_TXT_FOLDER = 'books/'
-- BOOK_IMAGE_FOLDER = 'images/'
-- DELAY_INTERVAL = 5
+- BOOKS_GENRE = 55    (science fictions genre)
+
 
 # Run script
 
 To run on-line library parsing, you can just execute command:
 
-```console
-(venv) weblibparser $  python3 main.py
+```bash
+python3 parse_tululu_category.py
 ```
 
-In this way, script will parse books with id from 1 to 10.
-
-You can setup book range for scanning, running script with options:
-- --start_id
-- --stop_id  
+In this way, script will parse all science fictions books, parse text fragments, images and generate `JSON` file and store all of these stuff in a current folder.
 
 
-```console
-(venv) weblibparser $  python3 main.py --start_id 20 --stop_id 30      
+## Script options
+
+- --start_page
+
+Determine first page of book category to start parsing.
+
+Default value = 1 (first page of books category list)
+
+- --end_page
+
+Determine last page of book category to stop parsing.
+
+Default value =  last page of books category list
+
+Be careful with script parameters: `--end_page` must be larger then `start_page`.
+
+- --skip_imgs
+
+Skip images downloading
+
+- --skip_txt
+
+Skip book descriptions downloading
+
+- --dest_folder
+
+Setup folder name to store text descriptions, images and `JSON` file.
+
+In case of absence, all files will be stored in current folder.
+
+In case of exceptions, all error events will be handled and files will be stored in the current folder as well.
+
+
+## Run script with parameters
+
+```bash
+python3 parse_tululu_category.py  --start_page=2 --end_page=3 --skip_txt --dest_folder=/User/apollo84/ 
 ```
 
-Be careful with script parameters: `--stop_id` must be larger then `start_id`.
+In this case, script will parse 2 and 3 page of science fiction category, skip text descriptions downloading and try store all files to the folder with name `/User/apollo84/`
 
-Script catch incorrect input parameters and throw error message in case of collision.
+## Parsing results
 
-After success parsing, you will see picture like this:
-
-![Скриншот](screenshots/parse.png)
+Script saves parsing results in `JSON` file with name `books.json`, file structure shown below:
 
 
-# Result log file
+```json
+[
+    {
+        "title": "Программируемый мальчик (педагогическая фантастика)",
+        "author": "Тюрин Александр Владимирович",
+        "img_src": "/Users/admin/code/weblibparser/images/nopic.gif",
+        "book_path": "",
+        "comments": [],
+        "genres": [
+            "Детская фантастика",
+            "Киберпанк",
+            "Научная фантастика"
+        ]
+    },
+    {
+        "title": "Войны Сорока Островов (Часть первая)",
+        "author": "Лукьяненко Сергей Васильевич",
+        "img_src": "/Users/admin/code/weblibparser/images/nopic.gif",
+        "book_path": "",
+        "comments": [
+            "В последних словах объясняющих книгу в целом, я просто остановился и думал..., а ведь правда всё именно так. ",
+            "Понравилось, жду продолжения!!!",
+            "Если вы еще не читали Лукьяненко, советую начинать с этой книги. Она, как простая но забойная песня в концерте, покажет вам, ваш ли это автор. (Мне ОЧЕНЬ нравтися)."
+        ],
+        "genres": [
+            "Детская фантастика",
+            "Научная фантастика"
+        ]
+    } 
+] 
+```
+
+## Result log file
 
 Script writes log file `parser.log` with errors and collisions events. It allows you to figure out and fix occurred issues. 
 
 # Projects goals
 
-This site was written as a study project for Python web development course [Devman](https://dvmn.org)
+Script was written as a study project for Python web development course [Devman](https://dvmn.org)
