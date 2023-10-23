@@ -177,7 +177,8 @@ def main():
                                indent=4,
                                ensure_ascii=False
                                )
-    with open(os.path.join(dest_folder, 'books.json'), 'w') as books_json:
+    with open(os.path.join(dest_folder, 'books.json'),
+              encoding='utf-8', mode='w') as books_json:
         books_json.write(books_in_json)
 
 
